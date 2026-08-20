@@ -15,7 +15,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +25,6 @@ from PIL import Image, ImageEnhance, ImageOps
 ROOT = Path(__file__).resolve().parent
 CONFIG_PATH = ROOT / "profile.json"
 API = "https://api.github.com"
-GRAPHQL = "https://api.github.com/graphql"
 
 
 @dataclass
@@ -33,9 +32,6 @@ class Stats:
     public_repos: str = "auto"
     followers: str = "auto"
     stars: str = "auto"
-    commits_1y: str = "auto"
-    contributions_1y: str = "auto"
-    contributed_repos: str = "auto"
     github_since: str = "auto"
     avatar_url: str | None = None
 
@@ -89,43 +85,6 @@ def fetch_stats(username: str, token: str | None) -> Stats:
             break
         page += 1
     stats.stars = f"{stars:,}"
-
-    # Contribution totals require GraphQL authentication. The repository's
-    # built-in GITHUB_TOKEN is enough for public account data.
-    if token:
-        now = datetime.now(timezone.utc)
-        start = now - timedelta(days=365)
-        query = """
-        query($login: String!, $from: DateTime!, $to: DateTime!) {
-          user(login: $login) {
-            contributionsCollection(from: $from, to: $to) {
-              totalCommitContributions
-              contributionCalendar { totalContributions }
-            }
-            repositoriesContributedTo(first: 1, includeUserRepositories: false) {
-              totalCount
-            }
-          }
-        }
-        """
-        payload = {
-            "query": query,
-            "variables": {
-                "login": username,
-                "from": start.isoformat().replace("+00:00", "Z"),
-                "to": now.isoformat().replace("+00:00", "Z"),
-            },
-        }
-        response = requests.post(GRAPHQL, headers=headers(token), json=payload, timeout=30)
-        response.raise_for_status()
-        result = response.json()
-        if result.get("errors"):
-            raise RuntimeError(f"GitHub GraphQL error: {result['errors']}")
-        data = result["data"]["user"]
-        contrib = data["contributionsCollection"]
-        stats.commits_1y = f"{contrib['totalCommitContributions']:,}"
-        stats.contributions_1y = f"{contrib['contributionCalendar']['totalContributions']:,}"
-        stats.contributed_repos = f"{data['repositoriesContributedTo']['totalCount']:,}"
 
     return stats
 
@@ -213,7 +172,7 @@ def theme_css(mode: str) -> tuple[str, str, str, str, str, str]:
 def render_svg(config: dict[str, Any], stats: Stats, ascii_lines: list[str], mode: str) -> str:
     theme = config.get("theme", {})
     width = int(theme.get("width", 1100))
-    height = int(theme.get("height", 560))
+    height = int(theme.get("height", 530))
     left_width = int(theme.get("left_column_width", 390))
     font_size = int(theme.get("font_size", 16))
     x = left_width + 25
@@ -262,9 +221,6 @@ def render_svg(config: dict[str, Any], stats: Stats, ascii_lines: list[str], mod
     right.append(field_tspan(y, "Public Repos", stats.public_repos, x)); y += 25
     right.append(field_tspan(y, "Stars", stats.stars, x)); y += 25
     right.append(field_tspan(y, "Followers", stats.followers, x)); y += 25
-    right.append(field_tspan(y, "Commits (1y)", stats.commits_1y, x)); y += 25
-    right.append(field_tspan(y, "Contributions (1y)", stats.contributions_1y, x)); y += 25
-    right.append(field_tspan(y, "Contributed Repos", stats.contributed_repos, x)); y += 25
     right.append(field_tspan(y, "GitHub Since", stats.github_since, x))
 
     return f'''<?xml version="1.0" encoding="UTF-8"?>
@@ -281,7 +237,6 @@ def render_svg(config: dict[str, Any], stats: Stats, ascii_lines: list[str], mod
   <rect width="{width}" height="{height}" rx="16" fill="{bg}"/>
   <text class="card text">{''.join(avatar_svg)}</text>
   <text class="card">{''.join(right)}</text>
-  <text x="18" y="540" class="card muted">ASCII avatar + public stats refresh automatically via GitHub Actions.</text>
 </svg>
 '''
 
