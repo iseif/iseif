@@ -1,0 +1,25 @@
+{
+  "username": "iseif",
+  "display_name": "Seif Ibrahim",
+  "terminal_user": "seif",
+  "terminal_host": "github",
+  "role": "Senior Software Engineer",
+  "focus": ["AI", "Backend", "Mobile", "Open Source"],
+  "editors": ["IntelliJ IDEA", "VS Code", "Xcode"],
+  "programming": ["Java", "TypeScript", "Dart", "Python"],
+  "backend": ["Spring Boot", "Node.js", "Next.js"],
+  "mobile": ["Flutter", "iOS", "Android"],
+  "cloud": ["Azure", "AWS", "GCP"],
+  "spoken_languages": ["Arabic", "Hebrew", "English"],
+  "contacts": {
+    "GitHub": "https://github.com/iseif",
+    "LinkedIn": "https://www.linkedin.com/in/seifibrahim/",
+    "Blog": "https://iseif.dev/"
+  },
+  "theme": {
+    "width": 1100,
+    "height": 560,
+    "left_column_width": 390,
+    "font_size": 16
+  }
+}
